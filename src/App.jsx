@@ -35,7 +35,7 @@ const SETS = [
     cover:"image/contraluz.jpg",
     precio:350 },
   { id:"set-horizonte", nombre:"Set Horizonte", desc:"14 paisajes de larga exposición al amanecer.", fotos:14,
-    cover:"/horizonte.jpg",
+    cover:"image/horizonte.jpg",
     precio:350 },
   { id:"set-vinculo", nombre:"Set Vínculo", desc:"25 momentos documentales de la ceremonia y recepción.", fotos:25,
     cover:"image/vinculo.jpg",
