@@ -218,7 +218,7 @@ function PasoGaleria({ carrito, onAdd, onNext }) {
         <div style={{ position:"sticky", bottom:16, background:accent, borderRadius:2, padding:"16px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", boxShadow:"0 8px 32px rgba(201,162,75,0.35)" }} onClick={onNext}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <span style={{ background:"rgba(11,11,12,0.2)", borderRadius:"50%", width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:uiFont, fontWeight:800, fontSize:13, color:"#0b0b0c" }}>{count}</span>
-            <span style={{ fontFamily:uiFont, fontWeight:700, fontSize:13, letterSpacing:"0.04em", textTransform:"uppercase", color:"#0b0b0c" }}>Ver carrito</span>
+            <span style={{ fontFamily:uiFont, fontWeight:700, fontSize:13, letterSpacing:"0.04em", textTransform:"uppercase", color:"#0b0b0c" }}>Continuar</span>
           </div>
           <span style={{ fontFamily:displayFont, fontWeight:700, fontSize:17, color:"#0b0b0c" }}>${total.toFixed(0)} →</span>
         </div>
