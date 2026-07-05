@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 /* ────────────────────────────────────────────────────────────────────────
    PREVIEW — Tienda de sets fotográficos digitales (autocontenido)
@@ -344,11 +344,68 @@ function Confirmacion({ folio, nombre, email, carrito, onNuevoPedido }) {
   );
 }
 
+const STORAGE_CARRITO      = "samrussi_carrito";
+const STORAGE_CONFIRMACION = "samrussi_confirmacion";
+
+// Un path distinto por paso, así al refrescar el navegador sabe dónde ibas
+const STEP_PATHS = { 1:"/", 2:"/paso-2", 3:"/paso-3", 4:"/confirmacion" };
+
+function pathToPaso(pathname) {
+  const entry = Object.entries(STEP_PATHS).find(([, path]) => path === pathname);
+  return entry ? Number(entry[0]) : 1;
+}
+
+function leerLocalStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function App() {
-  const [paso, setPaso]               = useState(1);
-  const [carrito, setCarrito]         = useState([]);
+  const [carrito, setCarrito]           = useState(() => leerLocalStorage(STORAGE_CARRITO, []));
+  const [confirmacion, setConfirmacion] = useState(() => leerLocalStorage(STORAGE_CONFIRMACION, null));
   const [abiertoCarro, setAbiertoCarro] = useState(false);
-  const [confirmacion, setConfirmacion] = useState(null);
+
+  const [paso, setPasoState] = useState(() => {
+    let inicial = pathToPaso(window.location.pathname);
+    const carritoGuardado = leerLocalStorage(STORAGE_CARRITO, []);
+    const confirmacionGuardada = leerLocalStorage(STORAGE_CONFIRMACION, null);
+    if (inicial === 4 && !confirmacionGuardada) inicial = carritoGuardado.length ? 2 : 1;
+    if ((inicial === 2 || inicial === 3) && carritoGuardado.length === 0) inicial = 1;
+    return inicial;
+  });
+
+  // Si el path no coincidía con un estado válido, se corrige la URL sin recargar
+  useEffect(() => {
+    const path = STEP_PATHS[paso] || "/";
+    if (window.location.pathname !== path) window.history.replaceState({ paso }, "", path);
+  }, []);
+
+  // Botones atrás/adelante del navegador
+  useEffect(() => {
+    const onPopState = () => setPasoState(pathToPaso(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  // Guardar carrito y confirmación en localStorage cada vez que cambian
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_CARRITO, JSON.stringify(carrito)); } catch {}
+  }, [carrito]);
+  useEffect(() => {
+    try {
+      if (confirmacion) localStorage.setItem(STORAGE_CONFIRMACION, JSON.stringify(confirmacion));
+      else localStorage.removeItem(STORAGE_CONFIRMACION);
+    } catch {}
+  }, [confirmacion]);
+
+  const irPaso = (n) => {
+    setPasoState(n);
+    window.history.pushState({ paso:n }, "", STEP_PATHS[n] || "/");
+  };
 
   const agregar = ({ id, nombre, cover, precio }) => {
     setCarrito(prev => {
@@ -356,6 +413,7 @@ export default function App() {
       if (ex) return prev.map(i => i===ex ? { ...i, cantidad:i.cantidad+1 } : i);
       return [...prev, { id, nombre, cover, precio, cantidad:1 }];
     });
+    setAbiertoCarro(true);
   };
   const quitar = (item) => {
     setCarrito(prev => {
@@ -365,8 +423,16 @@ export default function App() {
       return prev.map(i => i===ex ? { ...i, cantidad:i.cantidad-1 } : i);
     });
   };
-  const handleConfirmar = (datos) => { setConfirmacion(datos); setPaso(4); };
-  const reset = () => { setCarrito([]); setConfirmacion(null); setPaso(1); };
+  const handleConfirmar = (datos) => { setConfirmacion(datos); irPaso(4); };
+  const reset = () => {
+    setCarrito([]);
+    setConfirmacion(null);
+    try {
+      localStorage.removeItem(STORAGE_CARRITO);
+      localStorage.removeItem(STORAGE_CONFIRMACION);
+    } catch {}
+    irPaso(1);
+  };
 
   return (
     <div style={{ background:bg, minHeight:"100vh", color:text, fontFamily:uiFont }}>
@@ -379,9 +445,9 @@ export default function App() {
       <HeaderCarrito carrito={carrito} abiertoCarro={abiertoCarro} setAbiertoCarro={setAbiertoCarro} />
       <div style={{ maxWidth:560, margin:"0 auto", padding:"26px 16px 48px" }}>
         {paso<4 && <FilmStrip paso={paso} />}
-        {paso===1 && <PasoGaleria carrito={carrito} onAdd={agregar} onNext={()=>setPaso(2)} />}
-        {paso===2 && <PasoCarrito carrito={carrito} onQuitar={quitar} onAdd={agregar} onNext={()=>setPaso(3)} onBack={()=>setPaso(1)} />}
-        {paso===3 && <PasoDatos carrito={carrito} onBack={()=>setPaso(2)} onConfirmar={handleConfirmar} />}
+        {paso===1 && <PasoGaleria carrito={carrito} onAdd={agregar} onNext={()=>irPaso(2)} />}
+        {paso===2 && <PasoCarrito carrito={carrito} onQuitar={quitar} onAdd={agregar} onNext={()=>irPaso(3)} onBack={()=>irPaso(1)} />}
+        {paso===3 && <PasoDatos carrito={carrito} onBack={()=>irPaso(2)} onConfirmar={handleConfirmar} />}
         {paso===4 && confirmacion && <Confirmacion folio={confirmacion.folio} nombre={confirmacion.nombre} email={confirmacion.email} carrito={carrito} onNuevoPedido={reset} />}
       </div>
     </div>
